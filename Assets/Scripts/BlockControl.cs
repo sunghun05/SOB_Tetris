@@ -1,5 +1,6 @@
 using UnityEngine;
 using System.Collections;
+using System.Collections.Generic;
 
 public class BlockControl : MonoBehaviour
 {
@@ -7,26 +8,50 @@ public class BlockControl : MonoBehaviour
     public float fallTime = 0.5f;
     public int numberOfFactors = 4;
 
+    private List<GameObject> blocks = new List<GameObject>();
+
     [SerializeField]
     private bool isFocus = true;
 
+    private bool isLeftMove = true;
+    private bool isRightMove = true;
+
     void Start()
     {
+
+        foreach (Transform child in transform)
+        {
+            if (child.CompareTag("Block")) // 태그 검사
+            {
+                blocks.Add(child.gameObject);
+            }
+        }
+
+
         // 게임이 시작되면 Fall 코루틴을 실행합니다.
         StartCoroutine("Fall");
+
     }
 
     void Update()
     {
         if (isFocus)
         {
-            if (Input.GetKeyDown(KeyCode.LeftArrow))
+            if (Input.GetKeyDown(KeyCode.LeftArrow) && isLeftMove)
             {
                 transform.position += Vector3.left;
             }
-            if (Input.GetKeyDown(KeyCode.RightArrow))
+            if (Input.GetKeyDown(KeyCode.RightArrow) && isRightMove)
             {
                 transform.position += Vector3.right;
+            }
+            if (Input.GetKeyDown(KeyCode.Z))
+            {
+                SpinBlock(90.0f);
+            }
+            if (Input.GetKeyDown(KeyCode.X))
+            {
+                SpinBlock(-90.0f);
             }
         }
     }
@@ -44,16 +69,41 @@ public class BlockControl : MonoBehaviour
         }
     }
 
-    void OnCollisionEnter2D(Collision2D collision)
+    public void StopBlock(string name)
     {
-        //Debug.Log("Collision2D " + collision.gameObject.name);
-        if (collision.gameObject.CompareTag("Floor") || collision.gameObject.CompareTag("Block"))
+        
+        if(name == "collider_down")
         {
-            Debug.Log("Collision!");
-            // 더 이상 이 스크립트가 동작하지 않도록 비활성화합니다.
-            // 이 줄이 실행되면 while(enabled) 루프가 멈추게 됩니다.
             StopCoroutine("Fall");
             isFocus = false;
+        }
+        if(name == "collider_left")
+        {
+            isLeftMove = false;
+        }
+        if(name == "collider_right")
+        {
+            isRightMove = false;
+        }
+    }
+
+    public void StartBlock(string name)
+    {
+        if(name == "collider_left")
+        {
+            isLeftMove = true;
+        }
+        if(name == "collider_right")
+        {
+            isRightMove = true;
+        }
+    }
+
+    private void SpinBlock(float rotate)
+    {
+        this.transform.Rotate(0.0f, 0.0f, rotate);
+        foreach(GameObject block in this.blocks){
+            block.gameObject.transform.Rotate(0.0f, 0.0f, -rotate);
         }
     }
 }
