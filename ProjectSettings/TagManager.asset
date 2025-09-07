@@ -6,6 +6,7 @@ TagManager:
   tags:
   - Floor
   - Block
+  - Collider
   layers:
   - Default
   - TransparentFX
