@@ -22,7 +22,7 @@ public class BlockControl : MonoBehaviour
 
     [SerializeField]
     private bool isFocus = true;
-
+        
     private bool isLeftMove = true;
     private bool isRightMove = true;
     
