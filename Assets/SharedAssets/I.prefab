@@ -77,9 +77,11 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   delay: 0.5
-  numberOfFactors: 4
   dummyObjectPrefab: {fileID: 885227837510743178, guid: 3b7da95d82ef48d4eb836d13803cc94f, type: 3}
   isFocus: 1
+  focusEvent:
+    m_PersistentCalls:
+      m_Calls: []
 --- !u!1001 &1322767389309077709
 PrefabInstance:
   m_ObjectHideFlags: 0

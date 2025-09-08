@@ -2,30 +2,28 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
-using static UnityEngine.Rendering.DebugUI.Table;
+using UnityEngine.Events;
+using UnityEngine.UIElements;
 
 public class BlockControl : MonoBehaviour
 {
     // 블록이 한 칸 아래로 떨어지는 데 걸리는 시간 (초)
     public float delay = 0.5f;
-    public int numberOfFactors = 4;
 
     public GameObject dummyObjectPrefab;
+
+    public bool isFocus = false;
+    public UnityEvent focusEvent;
 
     //private List<GameObject> blocks = new List<GameObject>();
     //private GameObject[] dummyBlocks = new GameObject[4];
     //두 리스트를 하나의 맵으로 관리
-
     private Dictionary<GameObject, GameObject> blocks = new Dictionary<GameObject, GameObject>();
 
     private List<GameObject> coliderDownList = new List<GameObject>();
 
-    [SerializeField]
-    private bool isFocus = true;
-        
     private bool isLeftMove = true;
     private bool isRightMove = true;
-    
 
     void Start()
     {
@@ -45,16 +43,17 @@ public class BlockControl : MonoBehaviour
             }
         }
 
-        spawnDummyBlock(minLocation());
+        if (isFocus)
+        {
+            spawnDummyBlock(minLocation());
 
-        // 게임이 시작되면 Fall 코루틴을 실행합니다.
-        StartCoroutine("Fall");
-        
+            // 게임이 시작되면 Fall 코루틴을 실행합니다.
+            StartCoroutine("Fall");
+        }
     }
 
     void Update()
     {
-
         if (!isFocus) return;
 
         if (Input.GetKeyDown(KeyCode.Space))
@@ -63,8 +62,6 @@ public class BlockControl : MonoBehaviour
             deleteDummyBlock();
             return;
         }
-
-        
 
         if (Input.GetKeyDown(KeyCode.LeftArrow) && isLeftMove)
         {
@@ -108,7 +105,6 @@ public class BlockControl : MonoBehaviour
 
     public void StopBlock(string name)
     {
-        
         if(name == "collider_down")
         {
             changeIsFocus();
@@ -146,6 +142,8 @@ public class BlockControl : MonoBehaviour
     // focus 해제시, collider 관련 오브젝트들의 layer를 변경해줘야 하므로 항상 해당 함수로 focus 해제
     private void changeIsFocus()
     {
+        if (!isFocus) return;
+        Debug.Log("changeIsFocus 실행 " + gameObject.name );
         isFocus = false;
         
         deleteDummyBlock();
@@ -157,6 +155,11 @@ public class BlockControl : MonoBehaviour
                 child.gameObject.layer = LayerMask.NameToLayer("Tetrominoes");
             }
         }
+
+        deleteLine();
+        // 포커스 이벤트 발생
+        Physics2D.SyncTransforms();
+        focusEvent?.Invoke();
     }
 
     private float minLocation()
@@ -199,7 +202,6 @@ public class BlockControl : MonoBehaviour
         foreach (GameObject block in blocks.Keys.ToList())
         {
             GameObject obj = Instantiate(dummyObjectPrefab, new Vector3(block.transform.position.x, block.transform.position.y - minY), Quaternion.identity);
-            SpriteRenderer sr = obj.GetComponent<SpriteRenderer>();
             blocks[block] = obj;
         }
     }
@@ -212,5 +214,65 @@ public class BlockControl : MonoBehaviour
             Destroy(block.Value);
             blocks[block.Key] = null;
         }
+    }
+
+    private void deleteLine()
+    {
+        HashSet<GameObject> set = new HashSet<GameObject>();
+        HashSet<GameObject> set2 = new HashSet<GameObject>();
+
+        // 20개면 삭제
+        foreach (GameObject obj in blocks.Keys)
+        {
+
+            RaycastHit2D[] hit_left = Physics2D.RaycastAll(obj.transform.position, Vector2.left, 30f, LayerMask.GetMask("Tetrominoes"));
+            RaycastHit2D[] hit_right = Physics2D.RaycastAll(obj.transform.position, Vector2.right, 30f, LayerMask.GetMask("Tetrominoes"));
+            
+            
+
+            Debug.Log("좌우 충돌 회수 : " + (hit_left.Count() + hit_right.Count()));
+
+            if(hit_left.Count() + hit_right.Count() == 20)
+            {
+                foreach (RaycastHit2D hit in hit_left)
+                {
+                    GameObject parent = hit.collider.gameObject.transform.parent.gameObject;
+                    set.Add(parent);
+                }
+                foreach (RaycastHit2D hit in hit_right)
+                {
+                    GameObject parent = hit.collider.gameObject.transform.parent.gameObject;
+                    set.Add(parent);
+                }
+            }
+        }
+
+        
+
+        int downCount = set.Count / 10;
+        Debug.Log("setCount : " + set.Count);
+        Debug.Log("downCount : " + downCount);
+
+        foreach(GameObject obj in set)
+        {
+            RaycastHit2D[] hit_up = Physics2D.RaycastAll(obj.transform.position, Vector2.up, 30f, LayerMask.GetMask("Tetrominoes"));
+            foreach (RaycastHit2D hit in hit_up)
+            {
+                GameObject parent = hit.collider.gameObject.transform.parent.gameObject;
+                set2.Add(parent);
+            }
+
+            Destroy(obj);
+        }
+
+        foreach(GameObject obj in set2)
+        {
+            if(obj != null)
+            {
+                obj.transform.position += Vector3.down * downCount;
+            }
+        }
+
+        Debug.Log("Kill line 성공");
     }
 }
