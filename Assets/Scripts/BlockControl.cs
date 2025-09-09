@@ -1,6 +1,5 @@
 using System.Collections;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Linq;
 using UnityEngine;
 using UnityEngine.Events;
@@ -23,9 +22,6 @@ public class BlockControl : MonoBehaviour
 
     private List<GameObject> coliderDownList = new List<GameObject>();
     private List<Transform> childList = new List<Transform>();
-
-    private bool isLeftMove = true;
-    private bool isRightMove = true;
 
     void Start()
     {
@@ -76,7 +72,7 @@ public class BlockControl : MonoBehaviour
             return;
         }
 
-        if (Input.GetKeyDown(KeyCode.LeftArrow) && isLeftMove)
+        if (Input.GetKeyDown(KeyCode.LeftArrow))
         {
             deleteDummyBlock();
             if (CheckLeftRight(-1) == 0)
@@ -139,52 +135,6 @@ public class BlockControl : MonoBehaviour
         }
     }
 
-    public int CheckLeftRight(int direction)
-    {
-        int status = 0;
-        //direction -1: left, 1: right
-        
-        foreach (Transform child in transform)
-        {
-            // Layer가 Tetrominoes 또는 Z인 오브젝트와 닿았을 때의 위치 반환
-            // 이를 위해서 isFocus가 true인 오브젝트의 collider_? 오브젝트는 Collider 레이어로 변경함
-            RaycastHit2D hit = Physics2D.Raycast(child.transform.position, Vector2.right * direction, 0.5f, LayerMask.GetMask("Z"));
-            if (hit.collider != null)
-            {
-                // 하드드랍을 진행했을 때 내려갈 수 있는 칸 수 계산
-                // 현재 레이어를 쏜 오브젝트의 y 좌표는 0.5를 차감
-                // 닿은 오브젝트는 반올림 진행
-                status = 1;
-
-                UnityEngine.Debug.DrawLine(child.transform.position, hit.point, Color.red, 2f);
-
-            }
-        }
-
-        if (status!=0)
-        {
-            return -1;
-        }else
-        {
-            return 0;
-        }
-    }
-
-    public void StopBlock(string name)
-    {
-
-        if (name == "collider_down")
-        {
-            changeIsFocus();
-        }
-
-    }
-
-    public void StartBlock(string name)
-    {
-
-    }
-
     private bool SpinBlock(float rotate)
     {
         // 1. 회전 전 현재 상태 저장 (위치, 회전)
@@ -230,51 +180,15 @@ public class BlockControl : MonoBehaviour
         return false; // 최종적으로 회전 실패
     }
 
-    private bool SpinBlock(float rotate)
+    public void StopBlock(string name)
     {
-        // 1. 회전 전 현재 상태 저장 (위치, 회전)
-        Vector3 originalPosition = this.transform.position;
-        Quaternion originalRotation = this.transform.rotation;
 
-        // 2. 일단 회전 시도
-        this.transform.Rotate(0.0f, 0.0f, rotate);
-
-        // 3. Wall Kick 테스트를 위한 오프셋 정의
-        // 순서: 이동 없음 -> 왼쪽 1칸 -> 오른쪽 1칸
-        Vector3[] kickOffsets = new Vector3[] {
-            Vector3.zero,
-            Vector3.left,
-            Vector3.right
-        };
-
-        // 4. 각 오프셋을 순서대로 테스트
-        foreach (var offset in kickOffsets)
+        if (name == "collider_down")
         {
-            // 현재 위치를 오프셋만큼 임시로 이동
-            this.transform.position += offset;
-
-            // 이동한 위치가 유효한지 검사
-            if (IsValidPosition())
-            {
-                //
-                foreach (GameObject block in this.blocks.Keys)
-                {
-                    block.transform.Rotate(0.0f, 0.0f, -rotate);
-                }
-                return true;
-            }
-
-
-            this.transform.position -= offset;
+            changeIsFocus();
         }
 
-        // 5. 모든 오프셋 테스트에 실패한 경우, 모든 것을 원래 상태로 복구
-        this.transform.position = originalPosition;
-        this.transform.rotation = originalRotation;
-
-        return false; // 최종적으로 회전 실패
     }
-
 
     /// <summary>
     /// 현재 블록의 위치가 유효한지 검사하는 헬퍼 함수.
