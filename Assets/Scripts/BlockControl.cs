@@ -3,27 +3,29 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using UnityEngine;
-using static UnityEngine.Rendering.DebugUI.Table;
+using UnityEngine.Events;
+using UnityEngine.UIElements;
 
 public class BlockControl : MonoBehaviour
 {
-    // ºí·ÏÀÌ ÇÑ Ä­ ¾Æ·¡·Î ¶³¾îÁö´Â µ¥ °É¸®´Â ½Ã°£ (ÃÊ)
+    // ë¸”ë¡ì´ í•œ ì¹¸ ì•„ë˜ë¡œ ë–¨ì–´ì§€ëŠ” ë° ê±¸ë¦¬ëŠ” ì‹œê°„ (ì´ˆ)
     public float delay = 0.5f;
-    public int numberOfFactors = 4;
 
     public GameObject dummyObjectPrefab;
 
+    public bool isFocus = false;
+    public UnityEvent focusEvent;
+
     //private List<GameObject> blocks = new List<GameObject>();
     //private GameObject[] dummyBlocks = new GameObject[4];
-    //µÎ ¸®½ºÆ®¸¦ ÇÏ³ªÀÇ ¸ÊÀ¸·Î °ü¸®
-
+    //ë‘ ë¦¬ìŠ¤íŠ¸ë¥¼ í•˜ë‚˜ì˜ ë§µìœ¼ë¡œ ê´€ë¦¬
     private Dictionary<GameObject, GameObject> blocks = new Dictionary<GameObject, GameObject>();
 
     private List<GameObject> coliderDownList = new List<GameObject>();
     private List<Transform> childList = new List<Transform>();
 
-    [SerializeField]
-    private bool isFocus = true;
+    private bool isLeftMove = true;
+    private bool isRightMove = true;
 
     void Start()
     {
@@ -31,7 +33,7 @@ public class BlockControl : MonoBehaviour
         foreach (Transform child in transform)
         {
             childList.Add(child);
-            if (child.CompareTag("Block")) // ÅÂ±× °Ë»ç
+            if (child.CompareTag("Block")) // íƒœê·¸ ê²€ì‚¬
             {
                 
                 blocks.Add(child.gameObject, null);
@@ -54,16 +56,17 @@ public class BlockControl : MonoBehaviour
             }
         }
 
-        spawnDummyBlock(minLocation());
+        if (isFocus)
+        {
+            spawnDummyBlock(minLocation());
 
-        // °ÔÀÓÀÌ ½ÃÀÛµÇ¸é Fall ÄÚ·çÆ¾À» ½ÇÇàÇÕ´Ï´Ù.
-        StartCoroutine("Fall");
-
+            // ê²Œì„ì´ ì‹œì‘ë˜ë©´ Fall ì½”ë£¨í‹´ì„ ì‹¤í–‰í•©ë‹ˆë‹¤.
+            StartCoroutine("Fall");
+        }
     }
 
     void Update()
     {
-
         if (!isFocus) return;
 
         if (Input.GetKeyDown(KeyCode.Space))
@@ -73,19 +76,14 @@ public class BlockControl : MonoBehaviour
             return;
         }
 
-
-
-        if (Input.GetKeyDown(KeyCode.LeftArrow))
+        if (Input.GetKeyDown(KeyCode.LeftArrow) && isLeftMove)
         {
             deleteDummyBlock();
-            if(CheckLeftRight(-1) == 0)
+            if (CheckLeftRight(-1) == 0)
             {
                 transform.position += Vector3.left;
-
             }
-
-
-                spawnDummyBlock(minLocation());
+            spawnDummyBlock(minLocation());
         }
         if (Input.GetKeyDown(KeyCode.RightArrow))
         {
@@ -93,34 +91,33 @@ public class BlockControl : MonoBehaviour
             if (CheckLeftRight(1) == 0)
             {
                 transform.position += Vector3.right;
-
             }
             spawnDummyBlock(minLocation());
         }
 
         //spin
-        //¹İ½Ã°è
+        //ë°˜ì‹œê³„
         if (Input.GetKeyDown(KeyCode.Z))
         {
             deleteDummyBlock();
-            if (SpinBlock(90.0f)) // È¸ÀüÀÌ ¼º°øÇß´Ù¸é
+            if (SpinBlock(90.0f)) // íšŒì „ì´ ì„±ê³µí–ˆë‹¤ë©´
             {
                 spawnDummyBlock(minLocation());
             }
-            else // ½ÇÆĞÇß´Ù¸é ´õ¹Ì ºí·ÏÀ» ¿ø·¡ À§Ä¡¿¡ ´Ù½Ã »ı¼º
+            else // ì‹¤íŒ¨í–ˆë‹¤ë©´ ë”ë¯¸ ë¸”ë¡ì„ ì›ë˜ ìœ„ì¹˜ì— ë‹¤ì‹œ ìƒì„±
             {
                 spawnDummyBlock(minLocation());
             }
         }
-        //½Ã°è
+        //ì‹œê³„
         if (Input.GetKeyDown(KeyCode.X))
         {
             deleteDummyBlock();
-            if (SpinBlock(-90.0f)) // È¸ÀüÀÌ ¼º°øÇß´Ù¸é
+            if (SpinBlock(-90.0f)) // íšŒì „ì´ ì„±ê³µí–ˆë‹¤ë©´
             {
                 spawnDummyBlock(minLocation());
             }
-            else // ½ÇÆĞÇß´Ù¸é ´õ¹Ì ºí·ÏÀ» ¿ø·¡ À§Ä¡¿¡ ´Ù½Ã »ı¼º
+            else // ì‹¤íŒ¨í–ˆë‹¤ë©´ ë”ë¯¸ ë¸”ë¡ì„ ì›ë˜ ìœ„ì¹˜ì— ë‹¤ì‹œ ìƒì„±
             {
                 spawnDummyBlock(minLocation());
             }
@@ -128,14 +125,14 @@ public class BlockControl : MonoBehaviour
 
     }
 
-    // ÁöÁ¤µÈ ½Ã°£(fallTime)¸¶´Ù ºí·ÏÀ» ¾Æ·¡·Î ÇÑ Ä­¾¿ ÀÌµ¿½ÃÅ°´Â ÄÚ·çÆ¾
+    // ì§€ì •ëœ ì‹œê°„(fallTime)ë§ˆë‹¤ ë¸”ë¡ì„ ì•„ë˜ë¡œ í•œ ì¹¸ì”© ì´ë™ì‹œí‚¤ëŠ” ì½”ë£¨í‹´
     IEnumerator Fall()
     {
         while (true)
         {
-            // fallTime¸¸Å­ ±â´Ù¸³´Ï´Ù.
+            // fallTimeë§Œí¼ ê¸°ë‹¤ë¦½ë‹ˆë‹¤.
             yield return new WaitForSeconds(delay);
-            // ¾Æ·¡·Î ÇÑ Ä­ ÀÌµ¿
+            // ì•„ë˜ë¡œ í•œ ì¹¸ ì´ë™
             if (!isFocus) break;
             transform.position += Vector3.down;
 
@@ -149,14 +146,14 @@ public class BlockControl : MonoBehaviour
         
         foreach (Transform child in transform)
         {
-            // Layer°¡ Tetrominoes ¶Ç´Â ZÀÎ ¿ÀºêÁ§Æ®¿Í ´ê¾ÒÀ» ¶§ÀÇ À§Ä¡ ¹İÈ¯
-            // ÀÌ¸¦ À§ÇØ¼­ isFocus°¡ trueÀÎ ¿ÀºêÁ§Æ®ÀÇ collider_? ¿ÀºêÁ§Æ®´Â Collider ·¹ÀÌ¾î·Î º¯°æÇÔ
+            // Layerê°€ Tetrominoes ë˜ëŠ” Zì¸ ì˜¤ë¸Œì íŠ¸ì™€ ë‹¿ì•˜ì„ ë•Œì˜ ìœ„ì¹˜ ë°˜í™˜
+            // ì´ë¥¼ ìœ„í•´ì„œ isFocusê°€ trueì¸ ì˜¤ë¸Œì íŠ¸ì˜ collider_? ì˜¤ë¸Œì íŠ¸ëŠ” Collider ë ˆì´ì–´ë¡œ ë³€ê²½í•¨
             RaycastHit2D hit = Physics2D.Raycast(child.transform.position, Vector2.right * direction, 0.5f, LayerMask.GetMask("Z"));
             if (hit.collider != null)
             {
-                // ÇÏµåµå¶øÀ» ÁøÇàÇßÀ» ¶§ ³»·Á°¥ ¼ö ÀÖ´Â Ä­ ¼ö °è»ê
-                // ÇöÀç ·¹ÀÌ¾î¸¦ ½ğ ¿ÀºêÁ§Æ®ÀÇ y ÁÂÇ¥´Â 0.5¸¦ Â÷°¨
-                // ´êÀº ¿ÀºêÁ§Æ®´Â ¹İ¿Ã¸² ÁøÇà
+                // í•˜ë“œë“œëì„ ì§„í–‰í–ˆì„ ë•Œ ë‚´ë ¤ê°ˆ ìˆ˜ ìˆëŠ” ì¹¸ ìˆ˜ ê³„ì‚°
+                // í˜„ì¬ ë ˆì´ì–´ë¥¼ ìœ ì˜¤ë¸Œì íŠ¸ì˜ y ì¢Œí‘œëŠ” 0.5ë¥¼ ì°¨ê°
+                // ë‹¿ì€ ì˜¤ë¸Œì íŠ¸ëŠ” ë°˜ì˜¬ë¦¼ ì§„í–‰
                 status = 1;
 
                 UnityEngine.Debug.DrawLine(child.transform.position, hit.point, Color.red, 2f);
@@ -190,28 +187,28 @@ public class BlockControl : MonoBehaviour
 
     private bool SpinBlock(float rotate)
     {
-        // 1. È¸Àü Àü ÇöÀç »óÅÂ ÀúÀå (À§Ä¡, È¸Àü)
+        // 1. íšŒì „ ì „ í˜„ì¬ ìƒíƒœ ì €ì¥ (ìœ„ì¹˜, íšŒì „)
         Vector3 originalPosition = this.transform.position;
         Quaternion originalRotation = this.transform.rotation;
 
-        // 2. ÀÏ´Ü È¸Àü ½Ãµµ
+        // 2. ì¼ë‹¨ íšŒì „ ì‹œë„
         this.transform.Rotate(0.0f, 0.0f, rotate);
 
-        // 3. Wall Kick Å×½ºÆ®¸¦ À§ÇÑ ¿ÀÇÁ¼Â Á¤ÀÇ
-        // ¼ø¼­: ÀÌµ¿ ¾øÀ½ -> ¿ŞÂÊ 1Ä­ -> ¿À¸¥ÂÊ 1Ä­
+        // 3. Wall Kick í…ŒìŠ¤íŠ¸ë¥¼ ìœ„í•œ ì˜¤í”„ì…‹ ì •ì˜
+        // ìˆœì„œ: ì´ë™ ì—†ìŒ -> ì™¼ìª½ 1ì¹¸ -> ì˜¤ë¥¸ìª½ 1ì¹¸
         Vector3[] kickOffsets = new Vector3[] {
             Vector3.zero,
             Vector3.left,
             Vector3.right
         };
 
-        // 4. °¢ ¿ÀÇÁ¼ÂÀ» ¼ø¼­´ë·Î Å×½ºÆ®
+        // 4. ê° ì˜¤í”„ì…‹ì„ ìˆœì„œëŒ€ë¡œ í…ŒìŠ¤íŠ¸
         foreach (var offset in kickOffsets)
         {
-            // ÇöÀç À§Ä¡¸¦ ¿ÀÇÁ¼Â¸¸Å­ ÀÓ½Ã·Î ÀÌµ¿
+            // í˜„ì¬ ìœ„ì¹˜ë¥¼ ì˜¤í”„ì…‹ë§Œí¼ ì„ì‹œë¡œ ì´ë™
             this.transform.position += offset;
 
-            // ÀÌµ¿ÇÑ À§Ä¡°¡ À¯È¿ÇÑÁö °Ë»ç
+            // ì´ë™í•œ ìœ„ì¹˜ê°€ ìœ íš¨í•œì§€ ê²€ì‚¬
             if (IsValidPosition())
             {
                 //
@@ -226,27 +223,73 @@ public class BlockControl : MonoBehaviour
             this.transform.position -= offset;
         }
 
-        // 5. ¸ğµç ¿ÀÇÁ¼Â Å×½ºÆ®¿¡ ½ÇÆĞÇÑ °æ¿ì, ¸ğµç °ÍÀ» ¿ø·¡ »óÅÂ·Î º¹±¸
+        // 5. ëª¨ë“  ì˜¤í”„ì…‹ í…ŒìŠ¤íŠ¸ì— ì‹¤íŒ¨í•œ ê²½ìš°, ëª¨ë“  ê²ƒì„ ì›ë˜ ìƒíƒœë¡œ ë³µêµ¬
         this.transform.position = originalPosition;
         this.transform.rotation = originalRotation;
 
-        return false; // ÃÖÁ¾ÀûÀ¸·Î È¸Àü ½ÇÆĞ
+        return false; // ìµœì¢…ì ìœ¼ë¡œ íšŒì „ ì‹¤íŒ¨
     }
 
+    private bool SpinBlock(float rotate)
+    {
+        // 1. íšŒì „ ì „ í˜„ì¬ ìƒíƒœ ì €ì¥ (ìœ„ì¹˜, íšŒì „)
+        Vector3 originalPosition = this.transform.position;
+        Quaternion originalRotation = this.transform.rotation;
+
+        // 2. ì¼ë‹¨ íšŒì „ ì‹œë„
+        this.transform.Rotate(0.0f, 0.0f, rotate);
+
+        // 3. Wall Kick í…ŒìŠ¤íŠ¸ë¥¼ ìœ„í•œ ì˜¤í”„ì…‹ ì •ì˜
+        // ìˆœì„œ: ì´ë™ ì—†ìŒ -> ì™¼ìª½ 1ì¹¸ -> ì˜¤ë¥¸ìª½ 1ì¹¸
+        Vector3[] kickOffsets = new Vector3[] {
+            Vector3.zero,
+            Vector3.left,
+            Vector3.right
+        };
+
+        // 4. ê° ì˜¤í”„ì…‹ì„ ìˆœì„œëŒ€ë¡œ í…ŒìŠ¤íŠ¸
+        foreach (var offset in kickOffsets)
+        {
+            // í˜„ì¬ ìœ„ì¹˜ë¥¼ ì˜¤í”„ì…‹ë§Œí¼ ì„ì‹œë¡œ ì´ë™
+            this.transform.position += offset;
+
+            // ì´ë™í•œ ìœ„ì¹˜ê°€ ìœ íš¨í•œì§€ ê²€ì‚¬
+            if (IsValidPosition())
+            {
+                //
+                foreach (GameObject block in this.blocks.Keys)
+                {
+                    block.transform.Rotate(0.0f, 0.0f, -rotate);
+                }
+                return true;
+            }
+
+
+            this.transform.position -= offset;
+        }
+
+        // 5. ëª¨ë“  ì˜¤í”„ì…‹ í…ŒìŠ¤íŠ¸ì— ì‹¤íŒ¨í•œ ê²½ìš°, ëª¨ë“  ê²ƒì„ ì›ë˜ ìƒíƒœë¡œ ë³µêµ¬
+        this.transform.position = originalPosition;
+        this.transform.rotation = originalRotation;
+
+        return false; // ìµœì¢…ì ìœ¼ë¡œ íšŒì „ ì‹¤íŒ¨
+    }
+
+
     /// <summary>
-    /// ÇöÀç ºí·ÏÀÇ À§Ä¡°¡ À¯È¿ÇÑÁö °Ë»çÇÏ´Â ÇïÆÛ ÇÔ¼ö.
+    /// í˜„ì¬ ë¸”ë¡ì˜ ìœ„ì¹˜ê°€ ìœ íš¨í•œì§€ ê²€ì‚¬í•˜ëŠ” í—¬í¼ í•¨ìˆ˜.
     /// </summary>
-    /// <returns>À¯È¿ÇÏ¸é true, ¾Æ´Ï¸é false</returns>
+    /// <returns>ìœ íš¨í•˜ë©´ true, ì•„ë‹ˆë©´ false</returns>
     private bool IsValidPosition()
     {
-        // ºí·ÏÀ» ±¸¼ºÇÏ´Â ¸ğµç ÀÛÀº Á¶°¢(Mino)¿¡ ´ëÇØ ¹İº¹
+        // ë¸”ë¡ì„ êµ¬ì„±í•˜ëŠ” ëª¨ë“  ì‘ì€ ì¡°ê°(Mino)ì— ëŒ€í•´ ë°˜ë³µ
         foreach (GameObject block in this.blocks.Keys)
         {
-            // °æ°è¼± Ã¼Å© (°ÔÀÓ º¸µåÀÇ °¡·Î ¼¼·Î Å©±â¿¡ ¸Â°Ô ¼öÁ¤ ÇÊ¿ä)
+            // ê²½ê³„ì„  ì²´í¬ (ê²Œì„ ë³´ë“œì˜ ê°€ë¡œ ì„¸ë¡œ í¬ê¸°ì— ë§ê²Œ ìˆ˜ì • í•„ìš”)
             int x = Mathf.RoundToInt(block.transform.position.x);
             int y = Mathf.RoundToInt(block.transform.position.y);
 
-            //// ¿¹½Ã: °¡·Î 10, ¼¼·Î 20 Å©±âÀÇ º¸µå
+            //// ì˜ˆì‹œ: ê°€ë¡œ 10, ì„¸ë¡œ 20 í¬ê¸°ì˜ ë³´ë“œ
             if (x < -5 || x >= 5 || y < -7)
             {
                 return false;
@@ -256,9 +299,11 @@ public class BlockControl : MonoBehaviour
         return true;
     }
 
-    // focus ÇØÁ¦½Ã, collider °ü·Ã ¿ÀºêÁ§Æ®µéÀÇ layer¸¦ º¯°æÇØÁà¾ß ÇÏ¹Ç·Î Ç×»ó ÇØ´ç ÇÔ¼ö·Î focus ÇØÁ¦
+    // focus í•´ì œì‹œ, collider ê´€ë ¨ ì˜¤ë¸Œì íŠ¸ë“¤ì˜ layerë¥¼ ë³€ê²½í•´ì¤˜ì•¼ í•˜ë¯€ë¡œ í•­ìƒ í•´ë‹¹ í•¨ìˆ˜ë¡œ focus í•´ì œ
     private void changeIsFocus()
     {
+        if (!isFocus) return;
+        Debug.Log("changeIsFocus ì‹¤í–‰ " + gameObject.name );
         isFocus = false;
         
         deleteDummyBlock();
@@ -270,6 +315,11 @@ public class BlockControl : MonoBehaviour
                 child.gameObject.layer = LayerMask.NameToLayer("Tetrominoes");
             }
         }
+
+        deleteLine();
+        // í¬ì»¤ìŠ¤ ì´ë²¤íŠ¸ ë°œìƒ
+        Physics2D.SyncTransforms();
+        focusEvent?.Invoke();
     }
 
     private float minLocation()
@@ -277,17 +327,17 @@ public class BlockControl : MonoBehaviour
         float minY = float.MaxValue;
         foreach (GameObject obj in coliderDownList)
         {
-            // Layer°¡ Tetrominoes ¶Ç´Â ZÀÎ ¿ÀºêÁ§Æ®¿Í ´ê¾ÒÀ» ¶§ÀÇ À§Ä¡ ¹İÈ¯
-            // ÀÌ¸¦ À§ÇØ¼­ isFocus°¡ trueÀÎ ¿ÀºêÁ§Æ®ÀÇ collider_? ¿ÀºêÁ§Æ®´Â Collider ·¹ÀÌ¾î·Î º¯°æÇÔ
+            // Layerê°€ Tetrominoes ë˜ëŠ” Zì¸ ì˜¤ë¸Œì íŠ¸ì™€ ë‹¿ì•˜ì„ ë•Œì˜ ìœ„ì¹˜ ë°˜í™˜
+            // ì´ë¥¼ ìœ„í•´ì„œ isFocusê°€ trueì¸ ì˜¤ë¸Œì íŠ¸ì˜ collider_? ì˜¤ë¸Œì íŠ¸ëŠ” Collider ë ˆì´ì–´ë¡œ ë³€ê²½í•¨
             RaycastHit2D hit = Physics2D.Raycast(obj.transform.position, Vector2.down, 30f, LayerMask.GetMask("Tetrominoes", "Z"));
             if (hit.collider != null)
             {
-                // ÇÏµåµå¶øÀ» ÁøÇàÇßÀ» ¶§ ³»·Á°¥ ¼ö ÀÖ´Â Ä­ ¼ö °è»ê
-                // ÇöÀç ·¹ÀÌ¾î¸¦ ½ğ ¿ÀºêÁ§Æ®ÀÇ y ÁÂÇ¥´Â 0.5¸¦ Â÷°¨
-                // ´êÀº ¿ÀºêÁ§Æ®´Â ¹İ¿Ã¸² ÁøÇà
+                // í•˜ë“œë“œëì„ ì§„í–‰í–ˆì„ ë•Œ ë‚´ë ¤ê°ˆ ìˆ˜ ìˆëŠ” ì¹¸ ìˆ˜ ê³„ì‚°
+                // í˜„ì¬ ë ˆì´ì–´ë¥¼ ìœ ì˜¤ë¸Œì íŠ¸ì˜ y ì¢Œí‘œëŠ” 0.5ë¥¼ ì°¨ê°
+                // ë‹¿ì€ ì˜¤ë¸Œì íŠ¸ëŠ” ë°˜ì˜¬ë¦¼ ì§„í–‰
                 float y = obj.transform.position.y - 0.5f - Mathf.Round(hit.point.y);
 
-                // ¾ÈÇØµµ µÇÁö¸¸ Àı´ñ°ª Ã³¸®
+                // ì•ˆí•´ë„ ë˜ì§€ë§Œ ì ˆëŒ“ê°’ ì²˜ë¦¬
                 y = Mathf.Abs(y);
 
                 UnityEngine.Debug.DrawLine(obj.transform.position, hit.point, Color.red, 2f);
@@ -307,12 +357,43 @@ public class BlockControl : MonoBehaviour
         }
     }
 
+    private int CheckLeftRight(int direction)
+    {
+        int status = 0;
+        //direction -1: left, 1: right
+
+        foreach (Transform child in transform)
+        {
+            // Layerê°€ Tetrominoes ë˜ëŠ” Zì¸ ì˜¤ë¸Œì íŠ¸ì™€ ë‹¿ì•˜ì„ ë•Œì˜ ìœ„ì¹˜ ë°˜í™˜
+            // ì´ë¥¼ ìœ„í•´ì„œ isFocusê°€ trueì¸ ì˜¤ë¸Œì íŠ¸ì˜ collider_? ì˜¤ë¸Œì íŠ¸ëŠ” Collider ë ˆì´ì–´ë¡œ ë³€ê²½í•¨
+            RaycastHit2D hit = Physics2D.Raycast(child.transform.position, Vector2.right * direction, 0.5f, LayerMask.GetMask("Z"));
+            if (hit.collider != null)
+            {
+                // í•˜ë“œë“œëì„ ì§„í–‰í–ˆì„ ë•Œ ë‚´ë ¤ê°ˆ ìˆ˜ ìˆëŠ” ì¹¸ ìˆ˜ ê³„ì‚°
+                // í˜„ì¬ ë ˆì´ì–´ë¥¼ ìœ ì˜¤ë¸Œì íŠ¸ì˜ y ì¢Œí‘œëŠ” 0.5ë¥¼ ì°¨ê°
+                // ë‹¿ì€ ì˜¤ë¸Œì íŠ¸ëŠ” ë°˜ì˜¬ë¦¼ ì§„í–‰
+                status = 1;
+
+                UnityEngine.Debug.DrawLine(child.transform.position, hit.point, Color.red, 2f);
+
+            }
+        }
+
+        if (status != 0)
+        {
+            return -1;
+        }
+        else
+        {
+            return 0;
+        }
+    }
+
     private void spawnDummyBlock(float minY)
     {
         foreach (GameObject block in blocks.Keys.ToList())
         {
             GameObject obj = Instantiate(dummyObjectPrefab, new Vector3(block.transform.position.x, block.transform.position.y - minY), Quaternion.identity);
-            SpriteRenderer sr = obj.GetComponent<SpriteRenderer>();
             blocks[block] = obj;
         }
     }
@@ -325,5 +406,65 @@ public class BlockControl : MonoBehaviour
             Destroy(block.Value);
             blocks[block.Key] = null;
         }
+    }
+
+    private void deleteLine()
+    {
+        HashSet<GameObject> set = new HashSet<GameObject>();
+        HashSet<GameObject> set2 = new HashSet<GameObject>();
+
+        // 20ê°œë©´ ì‚­ì œ
+        foreach (GameObject obj in blocks.Keys)
+        {
+
+            RaycastHit2D[] hit_left = Physics2D.RaycastAll(obj.transform.position, Vector2.left, 30f, LayerMask.GetMask("Tetrominoes"));
+            RaycastHit2D[] hit_right = Physics2D.RaycastAll(obj.transform.position, Vector2.right, 30f, LayerMask.GetMask("Tetrominoes"));
+            
+            
+
+            Debug.Log("ì¢Œìš° ì¶©ëŒ íšŒìˆ˜ : " + (hit_left.Count() + hit_right.Count()));
+
+            if(hit_left.Count() + hit_right.Count() == 20)
+            {
+                foreach (RaycastHit2D hit in hit_left)
+                {
+                    GameObject parent = hit.collider.gameObject.transform.parent.gameObject;
+                    set.Add(parent);
+                }
+                foreach (RaycastHit2D hit in hit_right)
+                {
+                    GameObject parent = hit.collider.gameObject.transform.parent.gameObject;
+                    set.Add(parent);
+                }
+            }
+        }
+
+        
+
+        int downCount = set.Count / 10;
+        Debug.Log("setCount : " + set.Count);
+        Debug.Log("downCount : " + downCount);
+
+        foreach(GameObject obj in set)
+        {
+            RaycastHit2D[] hit_up = Physics2D.RaycastAll(obj.transform.position, Vector2.up, 30f, LayerMask.GetMask("Tetrominoes"));
+            foreach (RaycastHit2D hit in hit_up)
+            {
+                GameObject parent = hit.collider.gameObject.transform.parent.gameObject;
+                set2.Add(parent);
+            }
+
+            Destroy(obj);
+        }
+
+        foreach(GameObject obj in set2)
+        {
+            if(obj != null)
+            {
+                obj.transform.position += Vector3.down * downCount;
+            }
+        }
+
+        Debug.Log("Kill line ì„±ê³µ");
     }
 }

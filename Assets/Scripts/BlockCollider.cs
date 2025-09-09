@@ -5,26 +5,27 @@ public class BlockCollider : MonoBehaviour
 {
     private BlockControl parent;
 
-    void Start()
+    // Start is called once before the first execution of Update after the MonoBehaviour is created
+    void Awake()
     {
-        // ºÎ¸ğ ½ºÅ©¸³Æ®¸¦ Ã£¾Æ¿É´Ï´Ù. GetComponentInParent´Â ÁÁÀº ¹æ¹ıÀÔ´Ï´Ù.
+        // ë¶€ëª¨ ìŠ¤í¬ë¦½íŠ¸ë¥¼ ì°¾ì•„ì˜µë‹ˆë‹¤. GetComponentInParentëŠ” ì¢‹ì€ ë°©ë²•ì…ë‹ˆë‹¤.
         parent = GetComponentInParent<BlockControl>();
     }
 
-    // Update ¸Ş¼­µå´Â Ãæµ¹ °¨Áö¿¡ »ç¿ëÇÏÁö ¾ÊÀ¸¹Ç·Î »èÁ¦ÇÏ°Å³ª ºñ¿öµÓ´Ï´Ù.
+    // Update ë©”ì„œë“œëŠ” ì¶©ëŒ ê°ì§€ì— ì‚¬ìš©í•˜ì§€ ì•Šìœ¼ë¯€ë¡œ ì‚­ì œí•˜ê±°ë‚˜ ë¹„ì›Œë‘¡ë‹ˆë‹¤.
     void Update()
     {
-        // ÀÌ ¾ÈÀÇ ¸ğµç ÄÚµå¸¦ »èÁ¦ÇÕ´Ï´Ù.
+        // ì´ ì•ˆì˜ ëª¨ë“  ì½”ë“œë¥¼ ì‚­ì œí•©ë‹ˆë‹¤.
     }
 
     // 
     private void OnTriggerEnter2D(Collider2D collision)
     {
-        // 'collision'Àº ³ª¿Í Ãæµ¹ÇÑ '»ó´ë¹æ'ÀÇ Äİ¶óÀÌ´õÀÔ´Ï´Ù.
+        if (!parent.isFocus) return;
         if (collision.gameObject.CompareTag("Floor") || collision.gameObject.CompareTag("Collider"))
         {
-            // ºÎ¸ğÀÇ ÇÔ¼ö¸¦ ½ÇÇàÇÏ¿© ºí·ÏÀ» ¸ØÃä´Ï´Ù.
-            // this.gameObject.name ´ë½Å gameObject.nameÀ» »ç¿ëÇÏ´Â °ÍÀÌ ÀÏ¹İÀûÀÔ´Ï´Ù.
+            //Debug.Log(parent.gameObject.name + "ì˜ " + " collider ë°œìƒ! " + this.gameObject.name);
+            // ë¶€ëª¨ì˜ í•¨ìˆ˜ë¥¼ ì‹¤í–‰
             parent.StopBlock(gameObject.name);
         }
 
@@ -33,7 +34,8 @@ public class BlockCollider : MonoBehaviour
     //
     private void OnTriggerExit2D(Collider2D collision)
     {
-        // »ó´ë¹æÀÌ "Floor" ¶Ç´Â "Collider" ÅÂ±×¸¦ °¡Á³À» ¶§¸¸ StartBlockÀ» È£ÃâÇÏµµ·Ï Á¶°ÇÀ» Ãß°¡ÇÏ´Â °ÍÀÌ ´õ ¾ÈÀüÇÕ´Ï´Ù.
+        if (!parent.isFocus) return;
+        // ìƒëŒ€ë°©ì´ "Floor" ë˜ëŠ” "Collider" íƒœê·¸ë¥¼ ê°€ì¡Œì„ ë•Œë§Œ StartBlockì„ í˜¸ì¶œí•˜ë„ë¡ ì¡°ê±´ì„ ì¶”ê°€í•˜ëŠ” ê²ƒì´ ë” ì•ˆì „í•©ë‹ˆë‹¤.
         if (collision.gameObject.CompareTag("Floor") || collision.gameObject.CompareTag("Collider"))
         {
             parent.StartBlock(gameObject.name);
