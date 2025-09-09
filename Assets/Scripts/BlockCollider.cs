@@ -30,17 +30,4 @@ public class BlockCollider : MonoBehaviour
         }
 
     }
-
-    //
-    private void OnTriggerExit2D(Collider2D collision)
-    {
-        if (!parent.isFocus) return;
-        // 상대방이 "Floor" 또는 "Collider" 태그를 가졌을 때만 StartBlock을 호출하도록 조건을 추가하는 것이 더 안전합니다.
-        if (collision.gameObject.CompareTag("Floor") || collision.gameObject.CompareTag("Collider"))
-        {
-            parent.StartBlock(gameObject.name);
-        }
-
-    }
-
 }
